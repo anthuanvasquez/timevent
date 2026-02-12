@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 interface CalendarSelectorProps {
   calendars: gapi.client.calendar.CalendarListEntry[];
@@ -42,8 +42,7 @@ export function CalendarSelector({ calendars, selectedCalendars, onToggle }: Cal
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1 max-h-[300px] overflow-y-auto">
+      <div className={`absolute top-full left-0 mt-2 w-64 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1 max-h-[300px] overflow-y-auto transition-all duration-200 ease-out origin-top-left ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
           {calendars.map((calendar) => (
             <button
               key={calendar.id}
@@ -69,8 +68,7 @@ export function CalendarSelector({ calendars, selectedCalendars, onToggle }: Cal
           {calendars.length === 0 && (
             <div className="px-3 py-2 text-sm text-gray-500 text-center">No calendars found</div>
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
