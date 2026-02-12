@@ -3,6 +3,7 @@ import { CountdownTimer } from '@/components/CountdownTimer';
 import { EventInfo } from '@/components/EventInfo';
 import { CalendarSelector } from '@/components/CalendarSelector';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function App() {
   const { nextEvent, loading, error, isSignedIn, isInitialized, signIn, signOut, calendars, selectedCalendars, toggleCalendar } = useGoogleCalendar();
@@ -24,7 +25,7 @@ function App() {
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
             <div className="flex items-center gap-6">
-                <h1 className="text-2xl font-bold tracking-tight">Puntualidad</h1>
+                <h1 className="text-2xl font-bold tracking-tight">TimeVent</h1>
                 {isSignedIn && (
                     <CalendarSelector 
                         calendars={calendars} 
@@ -78,7 +79,15 @@ function App() {
             </button>
           </div>
         ) : loading ? (
-          <div className="animate-pulse text-2xl font-light">Loading your schedule...</div>
+          <div className="flex flex-col items-center gap-8 w-full max-w-5xl animate-pulse">
+             <div className="flex gap-4 items-end justify-center w-full">
+                <Skeleton className="h-32 w-32 rounded-lg" />
+                <Skeleton className="h-32 w-32 rounded-lg" />
+                <Skeleton className="h-32 w-32 rounded-lg" />
+                <Skeleton className="h-32 w-32 rounded-lg" />
+             </div>
+             <Skeleton className="h-64 w-full max-w-2xl rounded-3xl" />
+          </div>
         ) : error ? (
           <div className="bg-red-500/80 backdrop-blur-xl p-6 rounded-2xl text-white max-w-md text-center">
               <p className="font-bold text-lg mb-2">Something went wrong</p>
