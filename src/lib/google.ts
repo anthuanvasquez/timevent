@@ -1,5 +1,5 @@
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.readonly';
 
 export interface GoogleApiConfig {
   clientId: string;
@@ -7,6 +7,8 @@ export interface GoogleApiConfig {
 }
 
 export type CalendarEvent = gapi.client.calendar.Event;
+
+const TOKEN_STORAGE_KEY = 'google_calendar_token';
 
 export class GoogleCalendarService {
   private tokenClient: google.accounts.oauth2.TokenClient | null = null;
@@ -34,9 +36,28 @@ export class GoogleCalendarService {
       document.body.appendChild(script2);
 
       const checkInit = () => {
-        if (this.gapiInited && this.gisInited) resolve();
+        if (this.gapiInited && this.gisInited) {
+            // Try to restore token
+            this.restoreToken();
+            resolve();
+        }
       };
     });
+  }
+
+  private restoreToken() {
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (storedToken) {
+          try {
+              const token = JSON.parse(storedToken);
+              gapi.client.setToken(token);
+              // Basic check if token is roughly valid (Google tokens expire in 1h usually)
+              // Ideally we check expiry time if we stored it, or handle 401 later.
+          } catch (e) {
+              console.error("Failed to restore token", e);
+              localStorage.removeItem(TOKEN_STORAGE_KEY);
+          }
+      }
   }
 
   private async gapiLoaded() {
@@ -66,6 +87,20 @@ export class GoogleCalendarService {
                 console.error("Token error:", resp);
                 throw resp;
             }
+            // Save token
+            if (resp.access_token) {
+                // We should store the whole response object usually, minus functions
+                // But specifically we need access_token.
+                // gapi.client.getToken() returns the object that setToken needs.
+                // But here resp is the response from token client.
+                // When using gapi.client, it stores it internally.
+                // We can't easily get the 'internal' gapi token object during callback immediately 
+                // unless we rely on gapi.client.getToken() AFTER callback.
+                
+                // Actually the callback response IS the token object compatible with setToken mostly.
+                // Let's store it.
+                localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(resp));
+            }
         },
       });
       this.gisInited = true;
@@ -83,10 +118,13 @@ export class GoogleCalendarService {
         if (resp.error) {
           reject(resp);
         } else {
+          // Manually Save token here as well to be safe
+          localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(resp));
           resolve();
         }
       };
       
+      // We need to request the new scopes.
       this.tokenClient.requestAccessToken({ prompt: 'consent' });
     });
   }
@@ -94,17 +132,56 @@ export class GoogleCalendarService {
   public get isAuthenticated(): boolean {
       return gapi.client.getToken() !== null;
   }
+  
+  public signOut() {
+      const token = gapi.client.getToken();
+      if (token !== null) {
+          google.accounts.oauth2.revoke(token.access_token, () => {
+             gapi.client.setToken(null);
+             localStorage.removeItem(TOKEN_STORAGE_KEY);
+          });
+      } else {
+           localStorage.removeItem(TOKEN_STORAGE_KEY); // Just in case
+      }
+  }
 
-  public async getNextEvents(maxResults: number = 10): Promise<gapi.client.calendar.Event[]> {
-    const response = await gapi.client.calendar.events.list({
-      'calendarId': 'primary',
-      'timeMin': (new Date()).toISOString(),
-      'showDeleted': false,
-      'singleEvents': true,
-      'maxResults': maxResults,
-      'orderBy': 'startTime',
-    });
+  public async getCalendars(): Promise<gapi.client.calendar.CalendarListEntry[]> {
+    const response = await gapi.client.calendar.calendarList.list();
     return response.result.items || [];
+  }
+
+  public async getNextEvents(calendarIds: string[] = ['primary'], maxResults: number = 10): Promise<gapi.client.calendar.Event[]> {
+    const allEvents: gapi.client.calendar.Event[] = [];
+
+    // Fetch events from all selected calendars in parallel
+    await Promise.all(calendarIds.map(async (calendarId) => {
+      try {
+        const response = await gapi.client.calendar.events.list({
+          'calendarId': calendarId,
+          'timeMin': (new Date()).toISOString(),
+          'showDeleted': false,
+          'singleEvents': true,
+          'maxResults': maxResults,
+          'orderBy': 'startTime',
+        });
+        const events = response.result.items || [];
+        // Add calendarId to each event for reference if needed
+        events.forEach(event => {
+            // @ts-ignore - adding a custom property
+            event.calendarId = calendarId; 
+        });
+        allEvents.push(...events);
+      } catch (error) {
+        console.warn(`Failed to fetch events for calendar ${calendarId}`, error);
+      }
+    }));
+
+    // Sort all events by start time
+    return allEvents.sort((a, b) => {
+      const startA = new Date(a.start?.dateTime || a.start?.date || 0).getTime();
+      const startB = new Date(b.start?.dateTime || b.start?.date || 0).getTime();
+      return startA - startB;
+    }).slice(0, maxResults); // Return only the top maxResults
   }
 }
 
