@@ -1,3 +1,4 @@
+import React from 'react';
 import { useCountdown } from '@/hooks/useCountdown';
 import { cn } from '@/lib/utils';
 
@@ -17,12 +18,12 @@ const TimeUnit = ({ value, label }: TimeUnitProps) => (
   </div>
 );
 
-const Separator = () => (
-    <div className="flex flex-col gap-8 mx-4 h-[8rem] justify-center opacity-50">
+const Separator = React.memo(() => (
+    <div className="flex flex-col gap-8 mx-4 h-32 justify-center opacity-50">
         <div className="w-3 h-3 rounded-full bg-white/40"></div>
         <div className="w-3 h-3 rounded-full bg-white/40"></div>
     </div>
-);
+));
 
 interface CountdownTimerProps {
   targetDate: string;
