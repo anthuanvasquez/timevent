@@ -98,20 +98,18 @@ export function useGoogleCalendar() {
       }
   }, [selectedCalendars, isSignedIn, isInitialized, fetchEvents]);
 
-  const signIn = async () => {
+  const signIn = useCallback(async () => {
     try {
       await googleService.signIn();
       setIsSignedIn(true);
       await fetchCalendars();
-      // fetchEvents will be triggered by useEffect on selectedCalendars change (if fetchCalendars sets default)
-      // or we can call it here explicitly if we want to be sure.
     } catch (err) {
       console.error("Sign in failed", err);
       setError(err as Error);
     }
-  };
+  }, []);
 
-  const toggleCalendar = (calendarId: string) => {
+  const toggleCalendar = useCallback((calendarId: string) => {
       setSelectedCalendars(prev => {
           if (prev.includes(calendarId)) {
               return prev.filter(id => id !== calendarId);
@@ -119,15 +117,15 @@ export function useGoogleCalendar() {
               return [...prev, calendarId];
           }
       });
-  };
+  }, []);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     googleService.signOut();
     setIsSignedIn(false);
     setNextEvent(null);
     setCalendars([]);
     setSelectedCalendars([]);
-  };
+  }, []);
 
   return { 
       nextEvent, 
