@@ -1,54 +1,110 @@
 import { useEffect, useState } from 'react';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { EventInfo } from '@/components/EventInfo';
+import { CalendarSelector } from '@/components/CalendarSelector';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 
 function App() {
-  const { nextEvent, loading, error, isSignedIn, isInitialized, signIn } = useGoogleCalendar();
+  const { nextEvent, loading, error, isSignedIn, isInitialized, signIn, signOut, calendars, selectedCalendars, toggleCalendar } = useGoogleCalendar();
   const [mounted, setMounted] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    // Simple way to get user email if available from profile
+    // Note: This requires 'userinfo.email' scope which we might not have requested securely or implicitly
+    // For now we can try to get it from gapi if available or just leave it placeholder 
+    // real implementation would use google.accounts.oauth2.initCodeClient or similar to get profile
   }, []);
 
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 selection:bg-primary selection:text-primary-foreground">
-      <div className="w-full max-w-7xl mx-auto flex flex-col items-center gap-12">
+    <div className="min-h-screen bg-[#4158D0] bg-[linear-gradient(43deg,#4158D0_0%,#C850C0_46%,#FFCC70_100%)] text-white overflow-x-hidden selection:bg-white/30">
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
+            <div className="flex items-center gap-6">
+                <h1 className="text-2xl font-bold tracking-tight">Puntualidad</h1>
+                {isSignedIn && (
+                    <CalendarSelector 
+                        calendars={calendars} 
+                        selectedCalendars={selectedCalendars} 
+                        onToggle={toggleCalendar} 
+                    />
+                )}
+            </div>
+
+            <div className="flex items-center gap-4">
+                {isSignedIn ? (
+                    <>
+                         <span className="hidden md:inline text-sm font-medium opacity-80">
+                             {/* Placeholder for email as we don't strictly fetch it yet */}
+                             {userEmail || 'demo@example.com'} 
+                         </span>
+                         <button 
+                            onClick={signOut}
+                            className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium transition-all border border-white/10"
+                        >
+                            Sign Out
+                         </button>
+                    </>
+                ) : (
+                    <button 
+                        onClick={signIn}
+                        className="bg-white text-purple-600 px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition-colors shadow-lg"
+                    >
+                        Sign In
+                    </button>
+                )}
+            </div>
+        </header>
+
+      <main className="min-h-screen flex flex-col items-center justify-center p-4 pt-24 relative">
         {!isInitialized ? (
-             <div className="animate-pulse text-muted-foreground text-xl">Initializing Google Services...</div>
+             <div className="animate-pulse text-2xl font-light">Initializing...</div>
         ) : !isSignedIn ? (
-          <div className="flex flex-col items-center gap-6 animate-fade-in-up">
-            <h1 className="text-4xl font-bold text-foreground tracking-tight text-center">
-              Connect Your Calendar
+          <div className="flex flex-col items-center gap-8 text-center max-w-2xl animate-fade-in-up">
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-4">
+                Time is <br/> Everything.
             </h1>
-            <p className="text-muted-foreground text-center max-w-md">
-              Sign in with Google to see a countdown to your next event.
+            <p className="text-xl md:text-2xl text-white/80 font-light leading-relaxed">
+              Connect your Google Calendar to stay punctual and never miss a beat.
             </p>
             <button 
               onClick={signIn}
-              className="px-8 py-3 bg-primary text-primary-foreground rounded-full text-lg font-medium hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+              className="mt-8 px-10 py-4 bg-white text-purple-600 rounded-full text-xl font-bold hover:scale-105 transition-transform shadow-2xl"
             >
-              Sign in with Google
+              Get Started with Google
             </button>
           </div>
         ) : loading ? (
-          <div className="animate-pulse text-muted-foreground text-xl">Loading calendar...</div>
+          <div className="animate-pulse text-2xl font-light">Loading your schedule...</div>
         ) : error ? (
-          <div className="text-destructive text-xl">Error: {(error as Error).message || "Unknown error"}</div>
+          <div className="bg-red-500/80 backdrop-blur-xl p-6 rounded-2xl text-white max-w-md text-center">
+              <p className="font-bold text-lg mb-2">Something went wrong</p>
+              <p className="opacity-90">{(error as Error).message || "Unknown error"}</p>
+              <button onClick={() => window.location.reload()} className="mt-4 underline">Retry</button>
+          </div>
         ) : nextEvent ? (
-          <>
+          <div className="flex flex-col items-center w-full max-w-5xl">
             <CountdownTimer targetDate={nextEvent.start?.dateTime || nextEvent.start?.date || ''} />
-            <EventInfo event={nextEvent} />
-          </>
+            <EventInfo event={nextEvent} calendars={calendars} />
+            
+            <div className="mt-8 text-white/40 text-sm font-medium animate-pulse">
+                {/* Placeholder for future feature */}
+                Waiting for more events...
+            </div>
+          </div>
         ) : (
-          <div className="text-muted-foreground text-xl">No upcoming events found</div>
+          <div className="text-center flex flex-col items-center gap-4 animate-fade-in-up">
+             <div className="text-8xl mb-4">🎉</div>
+             <h2 className="text-4xl font-bold">You're all caught up!</h2>
+             <p className="text-xl text-white/60">No upcoming events found in selected calendars.</p>
+          </div>
         )}
-      </div>
+      </main>
       
-      {/* Decorative background element */}
-      <div className="fixed inset-0 -z-10 h-full w-full bg-background [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)] dark:[background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)] opacity-20 pointer-events-none" />
+      {/* Decorative background element override if needed, but the css gradient covers it */}
     </div>
   );
 }
