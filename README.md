@@ -1,4 +1,4 @@
-# Timevent - Google Calendar Countdown
+# NextCal - Google Calendar Countdown
 
 A modern, aesthetic web application built with React, Vite, TypeScript, and Tailwind CSS that displays a countdown timer to your next upcoming Google Calendar event.
 
@@ -21,8 +21,8 @@ A modern, aesthetic web application built with React, Vite, TypeScript, and Tail
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/timevent.git
-    cd timevent
+    git clone https://github.com/yourusername/nextcal.git
+    cd nextcal
     ```
 
 2.  Install dependencies:
@@ -46,7 +46,7 @@ To make this app work with your real calendar, you need to obtain credentials fr
 ### Step 1: Create a Google Cloud Project
 1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2.  Click the project dropdown at the top and select **"New Project"**.
-3.  Name your project (e.g., "Timevent Countdown") and click **Create**.
+3.  Name your project (e.g., "NextCal Countdown") and click **Create**.
 
 ### Step 2: Enable the Calendar API
 1.  In your new project, go to **"APIs & Services" > "Library"**.
@@ -57,7 +57,7 @@ To make this app work with your real calendar, you need to obtain credentials fr
 1.  Go to **"APIs & Services" > "OAuth consent screen"**.
 2.  Select **External** (unless you have a Google Workspace organization, then Internal is fine) and click **Create**.
 3.  Fill in the required fields:
-    - **App name**: Timevent
+    - **App name**: NextCal
     - **User support email**: Your email
     - **Developer contact information**: Your email
 4.  Click **Save and Continue**.
@@ -74,7 +74,7 @@ To make this app work with your real calendar, you need to obtain credentials fr
 1.  Go to **"APIs & Services" > "Credentials"**.
 2.  Click **Create Credentials** and select **OAuth client ID**.
 3.  **Application type**: Web application.
-4.  **Name**: Timevent Web Client.
+4.  **Name**: NextCal Web Client.
 5.  **Authorized JavaScript origins**:
     - Add `http://localhost:5173` (or your production URL).
 6.  **Authorized redirect URIs**:

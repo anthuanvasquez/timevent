@@ -33,7 +33,7 @@ export function useGoogleCalendar() {
               
               // Load saved calendar preferences for this user
               if (profile?.email) {
-                  const stored = localStorage.getItem(`timevent_cals_${profile.email}`);
+                  const stored = localStorage.getItem(`nextcal_cals_${profile.email}`);
                   if (stored) {
                       setSelectedCalendars(JSON.parse(stored));
                   }
@@ -86,7 +86,7 @@ export function useGoogleCalendar() {
   // Persist preferences
   useEffect(() => {
     if (userProfile?.email && selectedCalendars.length > 0) {
-        localStorage.setItem(`timevent_cals_${userProfile.email}`, JSON.stringify(selectedCalendars));
+        localStorage.setItem(`nextcal_cals_${userProfile.email}`, JSON.stringify(selectedCalendars));
     }
   }, [selectedCalendars, userProfile]);
 
@@ -99,7 +99,7 @@ export function useGoogleCalendar() {
       const profile = await googleService.getUserProfile();
       setUserProfile(profile);
       if (profile?.email) {
-          const stored = localStorage.getItem(`timevent_cals_${profile.email}`);
+          const stored = localStorage.getItem(`nextcal_cals_${profile.email}`);
           if (stored) setSelectedCalendars(JSON.parse(stored));
       }
       queryClient.invalidateQueries({ queryKey: ['calendars'] });

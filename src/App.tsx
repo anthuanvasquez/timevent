@@ -22,7 +22,7 @@ function App() {
         {/* Header */}
         <header className="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-background/80 backdrop-blur-md border-b border-border">
             <div className="flex items-center gap-6">
-                <h1 className="text-2xl font-bold tracking-tight">TimeVent</h1>
+                <h1 className="text-2xl font-bold tracking-tight">NextCal</h1>
                 {isSignedIn && (
                     <CalendarSelector 
                         calendars={calendars} 
