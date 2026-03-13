@@ -1,3 +1,5 @@
+'use client';
+
 import { CalendarEvent } from '@/hooks/useGoogleCalendar';
 import { useMemo } from 'react';
 
@@ -92,7 +94,7 @@ export function EventInfo({ event, calendars }: EventInfoProps) {
           <div>
                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Attendees ({event.attendees.length})</h3>
                <div className="flex flex-wrap gap-4">
-                   {event.attendees.map(attendee => (
+                   {event.attendees.map((attendee: any) => (
                        <div key={attendee.email} className="flex items-center gap-2 text-sm text-card-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border">
                             <div className={`w-2 h-2 rounded-full ${attendee.responseStatus === 'accepted' ? 'bg-green-500' : attendee.responseStatus === 'declined' ? 'bg-red-500' : 'bg-yellow-500'}`} />
                             <span>{attendee.displayName || attendee.email}</span>

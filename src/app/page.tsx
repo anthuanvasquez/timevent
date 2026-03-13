@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { EventInfo } from '@/components/EventInfo';
@@ -7,8 +9,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-function App() {
-  const { nextEvent, loading, error, isSignedIn, isSigningIn, isInitialized, hasInitialFetched, signIn, signOut, calendars, selectedCalendars, toggleCalendar, userProfile } = useGoogleCalendar();
+export default function Home() {
+  const { 
+    nextEvent, 
+    loading, 
+    error, 
+    isSignedIn, 
+    isSigningIn, 
+    isInitialized, 
+    hasInitialFetched, 
+    signIn, 
+    signOut, 
+    calendars, 
+    selectedCalendars, 
+    toggleCalendar, 
+    userProfile 
+  } = useGoogleCalendar();
+  
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -82,7 +99,7 @@ function App() {
         ) : error ? (
           <div className="bg-destructive/10 border border-destructive/20 backdrop-blur-xl p-6 rounded-2xl text-destructive-foreground max-w-md text-center">
               <p className="font-bold text-lg mb-2 text-destructive">Something went wrong</p>
-              <p className="opacity-90 text-destructive">{error.message || "Unknown error"}</p>
+              <p className="opacity-90 text-destructive">{(error as Error).message || "Unknown error"}</p>
               <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
           </div>
         ) : nextEvent ? (
@@ -91,7 +108,6 @@ function App() {
             <EventInfo event={nextEvent} calendars={calendars} />
             
             <div className="mt-8 text-muted-foreground text-sm font-medium animate-pulse">
-                {/* Placeholder for future feature */}
                 Waiting for more events...
             </div>
           </div>
@@ -106,5 +122,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
