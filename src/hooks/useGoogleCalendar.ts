@@ -1,120 +1,115 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { googleService, CalendarEvent, UserProfile } from '@/lib/google';
 
 export type { CalendarEvent };
 
 export function useGoogleCalendar() {
-  const [nextEvent, setNextEvent] = useState<gapi.client.calendar.Event | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [isSignedIn, setIsSignedIn] = useState<boolean>(false);
+  const queryClient = useQueryClient();
+  const [isSignedIn, setIsSignedIn] = useState<boolean>(() => {
+    return localStorage.getItem('google_calendar_token') !== null;
+  });
+  const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-
-  const [calendars, setCalendars] = useState<gapi.client.calendar.CalendarListEntry[]>([]);
+  
+  // Local state for user preferences
   const [selectedCalendars, setSelectedCalendars] = useState<string[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Initialize GAPI/GIS once
+  // 1. Initialization Effect
   useEffect(() => {
     let mounted = true;
-
     const init = async () => {
       try {
         await googleService.loadScripts();
         if (mounted) {
           setIsInitialized(true);
-          // Check if we already have a session
-          setIsSignedIn(googleService.isAuthenticated);
+          const authenticated = googleService.isAuthenticated;
+          setIsSignedIn(authenticated);
           
-          if (googleService.isAuthenticated) {
+          if (authenticated) {
               const profile = await googleService.getUserProfile();
               setUserProfile(profile);
-              await fetchCalendars(profile?.email);
-              fetchEvents();
-          } else {
-              setLoading(false); // Done loading scripts, waiting for sign in
+              
+              // Load saved calendar preferences for this user
+              if (profile?.email) {
+                  const stored = localStorage.getItem(`timevent_cals_${profile.email}`);
+                  if (stored) {
+                      setSelectedCalendars(JSON.parse(stored));
+                  }
+              }
           }
         }
       } catch (err) {
         if (mounted) {
-          setError(err as Error);
-          setLoading(false);
+          setIsInitialized(true);
         }
       }
     };
 
     init();
-
-    return () => { mounted = false; };
+    const timer = setTimeout(() => { if (mounted) setIsInitialized(true); }, 5000);
+    return () => { mounted = false; clearTimeout(timer); };
   }, []);
 
-  // Save selected calendars when they change
+  // 2. Query for Calendars
+  const { data: calendars = [] } = useQuery({
+    queryKey: ['calendars', userProfile?.email],
+    queryFn: () => googleService.getCalendars(),
+    enabled: isSignedIn && isInitialized,
+  });
+
+  // Set default selection if none exists
+  useEffect(() => {
+      if (calendars.length > 0 && selectedCalendars.length === 0) {
+          const primary = calendars.find(c => c.primary);
+          if (primary?.id) setSelectedCalendars([primary.id]);
+      }
+  }, [calendars, selectedCalendars.length]);
+
+  // 3. Query for Next Event
+  const { 
+      data: nextEvent = null, 
+      isLoading: loading, 
+      error,
+      isFetched: hasInitialFetched
+  } = useQuery({
+    queryKey: ['nextEvent', selectedCalendars],
+    queryFn: async () => {
+        const events = await googleService.getNextEvents(selectedCalendars, 1);
+        return events.length > 0 ? events[0] : null;
+    },
+    enabled: isSignedIn && isInitialized && selectedCalendars.length > 0,
+    refetchInterval: 1000 * 60, // Refresh every minute
+  });
+
+  // Persist preferences
   useEffect(() => {
     if (userProfile?.email && selectedCalendars.length > 0) {
         localStorage.setItem(`timevent_cals_${userProfile.email}`, JSON.stringify(selectedCalendars));
     }
   }, [selectedCalendars, userProfile]);
 
-  const fetchCalendars = async (email?: string) => {
-      try {
-          const calendarList = await googleService.getCalendars();
-          setCalendars(calendarList);
-          
-          let savedSelections: string[] | null = null;
-          if (email) {
-             const stored = localStorage.getItem(`timevent_cals_${email}`);
-             if (stored) savedSelections = JSON.parse(stored);
-          }
-
-          // Default to selecting the primary calendar if no selection exists
-          if (savedSelections && savedSelections.length > 0) {
-             setSelectedCalendars(savedSelections);
-          } else if (selectedCalendars.length === 0) {
-             const primary = calendarList.find(c => c.primary);
-             if (primary?.id) setSelectedCalendars([primary.id]);
-          }
-      } catch (err) {
-          console.error("Failed to fetch calendars", err);
-      }
-  };
-
-  const fetchEvents = useCallback(async () => {
-    if (!googleService.isAuthenticated) return;
-    try {
-      setLoading(true);
-      const events = await googleService.getNextEvents(selectedCalendars, 1);
-      if (events.length > 0) {
-        setNextEvent(events[0]);
-      } else {
-        setNextEvent(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch events", err);
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedCalendars]);
-
-  // Re-fetch events when selected calendars change
-  useEffect(() => {
-      if (isSignedIn && isInitialized) {
-          fetchEvents();
-      }
-  }, [selectedCalendars, isSignedIn, isInitialized, fetchEvents]);
-
+  // 4. Actions
   const signIn = useCallback(async () => {
     try {
+      setIsSigningIn(true);
       await googleService.signIn();
       setIsSignedIn(true);
       const profile = await googleService.getUserProfile();
       setUserProfile(profile);
-      await fetchCalendars(profile?.email);
+      if (profile?.email) {
+          const stored = localStorage.getItem(`timevent_cals_${profile.email}`);
+          if (stored) setSelectedCalendars(JSON.parse(stored));
+      }
+      queryClient.invalidateQueries({ queryKey: ['calendars'] });
+      queryClient.invalidateQueries({ queryKey: ['nextEvent'] });
     } catch (err) {
       console.error("Sign in failed", err);
-      setError(err as Error);
+    } finally {
+      setIsSigningIn(false);
     }
-  }, []);
+  }, [queryClient]);
 
   const toggleCalendar = useCallback((calendarId: string) => {
       setSelectedCalendars(prev => {
@@ -130,20 +125,21 @@ export function useGoogleCalendar() {
     googleService.signOut();
     setIsSignedIn(false);
     setUserProfile(null);
-    setNextEvent(null);
-    setCalendars([]);
     setSelectedCalendars([]);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   return { 
       nextEvent, 
       loading, 
       error, 
       isSignedIn, 
+      isSigningIn,
       isInitialized, 
+      hasInitialFetched,
       signIn, 
       signOut,
-      refresh: fetchEvents,
+      refresh: () => queryClient.invalidateQueries({ queryKey: ['nextEvent'] }),
       calendars,
       selectedCalendars,
       toggleCalendar,
