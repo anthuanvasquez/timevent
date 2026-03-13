@@ -6,16 +6,11 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function App() {
-  const { nextEvent, loading, error, isSignedIn, isInitialized, signIn, signOut, calendars, selectedCalendars, toggleCalendar } = useGoogleCalendar();
+  const { nextEvent, loading, error, isSignedIn, isInitialized, signIn, signOut, calendars, selectedCalendars, toggleCalendar, userProfile } = useGoogleCalendar();
   const [mounted, setMounted] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    // Simple way to get user email if available from profile
-    // Note: This requires 'userinfo.email' scope which we might not have requested securely or implicitly
-    // For now we can try to get it from gapi if available or just leave it placeholder 
-    // real implementation would use google.accounts.oauth2.initCodeClient or similar to get profile
   }, []);
 
   if (!mounted) return null;
@@ -39,9 +34,15 @@ function App() {
                 {isSignedIn ? (
                     <>
                          <span className="hidden md:inline text-sm font-medium opacity-80">
-                             {/* Placeholder for email as we don't strictly fetch it yet */}
-                             {userEmail || 'demo@example.com'} 
+                             {userProfile?.email || userProfile?.name || 'Cargando perfil...'} 
                          </span>
+                         {userProfile?.picture && (
+                             <img 
+                                src={userProfile.picture} 
+                                alt="Profile" 
+                                className="w-8 h-8 rounded-full border border-white/20"
+                             />
+                         )}
                          <button 
                             onClick={signOut}
                             className="bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium transition-all border border-white/10"

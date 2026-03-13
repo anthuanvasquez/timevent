@@ -1,9 +1,15 @@
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'];
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
 
 export interface GoogleApiConfig {
   clientId: string;
   apiKey: string;
+}
+
+export interface UserProfile {
+  email: string;
+  name: string;
+  picture: string;
 }
 
 export type CalendarEvent = gapi.client.calendar.Event;
@@ -50,9 +56,13 @@ export class GoogleCalendarService {
       if (storedToken) {
           try {
               const token = JSON.parse(storedToken);
+              // Check if token is expired
+              if (token.expires_at && Date.now() > token.expires_at) {
+                  console.log("Token expired, clearing");
+                  localStorage.removeItem(TOKEN_STORAGE_KEY);
+                  return;
+              }
               gapi.client.setToken(token);
-              // Basic check if token is roughly valid (Google tokens expire in 1h usually)
-              // Ideally we check expiry time if we stored it, or handle 401 later.
           } catch (e) {
               console.error("Failed to restore token", e);
               localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -89,17 +99,11 @@ export class GoogleCalendarService {
             }
             // Save token
             if (resp.access_token) {
-                // We should store the whole response object usually, minus functions
-                // But specifically we need access_token.
-                // gapi.client.getToken() returns the object that setToken needs.
-                // But here resp is the response from token client.
-                // When using gapi.client, it stores it internally.
-                // We can't easily get the 'internal' gapi token object during callback immediately 
-                // unless we rely on gapi.client.getToken() AFTER callback.
-                
-                // Actually the callback response IS the token object compatible with setToken mostly.
-                // Let's store it.
-                localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(resp));
+                const tokenObj = {
+                    ...resp,
+                    expires_at: Date.now() + (Number(resp.expires_in) * 1000)
+                };
+                localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokenObj));
             }
         },
       });
@@ -119,7 +123,11 @@ export class GoogleCalendarService {
           reject(resp);
         } else {
           // Manually Save token here as well to be safe
-          localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(resp));
+          const tokenObj = {
+              ...resp,
+              expires_at: Date.now() + (Number(resp.expires_in) * 1000)
+          };
+          localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokenObj));
           resolve();
         }
       };
@@ -142,6 +150,21 @@ export class GoogleCalendarService {
           });
       } else {
            localStorage.removeItem(TOKEN_STORAGE_KEY); // Just in case
+      }
+  }
+
+  public async getUserProfile(): Promise<UserProfile | null> {
+      const token = gapi.client.getToken();
+      if (!token) return null;
+      try {
+          const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: { Authorization: `Bearer ${token.access_token}` }
+          });
+          if (!response.ok) throw new Error('Failed to fetch profile');
+          return await response.json();
+      } catch (error) {
+          console.error("Error fetching profile", error);
+          return null;
       }
   }
 
