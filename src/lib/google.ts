@@ -25,29 +25,79 @@ export class GoogleCalendarService {
 
   public loadScripts(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const script1 = document.createElement('script');
-      script1.src = 'https://apis.google.com/js/api.js';
-      script1.async = true;
-      script1.defer = true;
-      script1.onload = () => this.gapiLoaded().then(() => checkInit());
-      script1.onerror = reject;
-      document.body.appendChild(script1);
+      // If already initialized, resolve immediately
+      if (this.gapiInited && this.gisInited) {
+        this.restoreToken();
+        return resolve();
+      }
 
-      const script2 = document.createElement('script');
-      script2.src = 'https://accounts.google.com/gsi/client';
-      script2.async = true;
-      script2.defer = true;
-      script2.onload = () => this.gisLoaded().then(() => checkInit());
-      script2.onerror = reject;
-      document.body.appendChild(script2);
+      let gapiLoadedFlag = !!window.gapi;
+      let gisLoadedFlag = !!window.google?.accounts?.oauth2;
 
       const checkInit = () => {
-        if (this.gapiInited && this.gisInited) {
-            // Try to restore token
+        if (gapiLoadedFlag && gisLoadedFlag) {
             this.restoreToken();
             resolve();
         }
       };
+
+      if (gapiLoadedFlag && gisLoadedFlag) {
+          return checkInit();
+      }
+
+      const loadGapi = () => {
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.onload = () => {
+          this.gapiLoaded().then(() => {
+            gapiLoadedFlag = true;
+            checkInit();
+          }).catch(reject);
+        };
+        script.onerror = reject;
+        document.body.appendChild(script);
+      };
+
+      const loadGis = () => {
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = () => {
+          this.gisLoaded().then(() => {
+            gisLoadedFlag = true;
+            checkInit();
+          }).catch(reject);
+        };
+        script.onerror = reject;
+        document.body.appendChild(script);
+      };
+
+      if (!gapiLoadedFlag && !document.querySelector('script[src="https://apis.google.com/js/api.js"]')) {
+         loadGapi();
+      } else if (!gapiLoadedFlag) {
+         const checkGapi = setInterval(() => {
+             if (window.gapi) {
+                 clearInterval(checkGapi);
+                 this.gapiLoaded().then(() => {
+                     gapiLoadedFlag = true;
+                     checkInit();
+                 }).catch(reject);
+             }
+         }, 100);
+      }
+
+      if (!gisLoadedFlag && !document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
+         loadGis();
+      } else if (!gisLoadedFlag) {
+         const checkGis = setInterval(() => {
+             if (window.google?.accounts?.oauth2) {
+                 clearInterval(checkGis);
+                 this.gisLoaded().then(() => {
+                     gisLoadedFlag = true;
+                     checkInit();
+                 }).catch(reject);
+             }
+         }, 100);
+      }
     });
   }
 
