@@ -38,15 +38,15 @@ export function EventInfo({ event, calendars }: EventInfoProps) {
   const calendarColor = calendars.find(c => c.id === calendarId)?.backgroundColor || '#ccc';
 
   return (
-    <div className="w-full max-w-2xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl text-left animate-fade-in-up mt-12">
-      <h2 className="text-3xl font-bold text-white mb-6">
+    <div className="w-full max-w-2xl bg-card border border-border rounded-3xl p-8 shadow-sm text-card-foreground text-left animate-fade-in-up mt-12">
+      <h2 className="text-3xl font-bold mb-6">
         {event.summary || '(No Title)'}
       </h2>
 
-      <div className="flex flex-col gap-4 text-white/90">
+      <div className="flex flex-col gap-4 text-muted-foreground">
           {/* Time */}
           <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-2 rounded-lg">
+              <div className="bg-muted text-foreground p-2 rounded-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               </div>
               <span className="text-lg font-medium">{dateString}</span>
@@ -54,7 +54,7 @@ export function EventInfo({ event, calendars }: EventInfoProps) {
 
           {/* Calendar Name */}
           <div className="flex items-center gap-3">
-               <div className="bg-white/10 p-2 rounded-lg">
+               <div className="bg-muted text-foreground p-2 rounded-lg">
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                </div>
                <div className="flex items-center gap-2">
@@ -66,22 +66,22 @@ export function EventInfo({ event, calendars }: EventInfoProps) {
           {/* Location */}
           {event.location && (
             <div className="flex items-center gap-3">
-                <div className="bg-white/10 p-2 rounded-lg">
+                <div className="bg-muted text-foreground p-2 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                 </div>
-                <span className="text-lg font-medium text-white/90">{event.location}</span>
+                <span className="text-lg font-medium text-muted-foreground">{event.location}</span>
             </div>
           )}
       </div>
 
-      <div className="my-6 border-t border-white/10 w-full" />
+      <div className="my-6 border-t border-border w-full" />
 
       {/* Description */}
       {event.description && (
           <div className="mb-6">
-              <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Description</h3>
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Description</h3>
               <div 
-                  className="text-white/80 leading-relaxed text-sm" 
+                  className="text-card-foreground leading-relaxed text-sm prose dark:prose-invert max-w-none" 
                   dangerouslySetInnerHTML={{ __html: event.description }} 
               />
           </div>
@@ -90,13 +90,13 @@ export function EventInfo({ event, calendars }: EventInfoProps) {
       {/* Attendees */}
       {event.attendees && event.attendees.length > 0 && (
           <div>
-               <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-3">Attendees ({event.attendees.length})</h3>
+               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Attendees ({event.attendees.length})</h3>
                <div className="flex flex-wrap gap-4">
                    {event.attendees.map(attendee => (
-                       <div key={attendee.email} className="flex items-center gap-2 text-sm text-white/80 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
-                            <div className={`w-2 h-2 rounded-full ${attendee.responseStatus === 'accepted' ? 'bg-green-400' : attendee.responseStatus === 'declined' ? 'bg-red-400' : 'bg-gray-400'}`} />
+                       <div key={attendee.email} className="flex items-center gap-2 text-sm text-card-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border">
+                            <div className={`w-2 h-2 rounded-full ${attendee.responseStatus === 'accepted' ? 'bg-green-500' : attendee.responseStatus === 'declined' ? 'bg-red-500' : 'bg-yellow-500'}`} />
                             <span>{attendee.displayName || attendee.email}</span>
-                            {attendee.organizer && <span className="text-white/40 italic ml-1">(organizer)</span>}
+                            {attendee.organizer && <span className="text-muted-foreground italic ml-1">(organizer)</span>}
                        </div>
                    ))}
                </div>

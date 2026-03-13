@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Button } from "@/components/ui/button"
+import { CheckIcon, CalendarIcon, ChevronDownIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface CalendarSelectorProps {
   calendars: gapi.client.calendar.CalendarListEntry[];
@@ -8,67 +11,68 @@ interface CalendarSelectorProps {
 
 export function CalendarSelector({ calendars, selectedCalendars, onToggle }: CalendarSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-
+  const containerRef = useRef<HTMLDivElement>(null);
   const selectedCount = selectedCalendars.length;
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="relative">
-      <button
+    <div className="relative" ref={containerRef}>
+      <Button 
+        variant="outline" 
+        className="gap-2 border-border bg-background/50"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white hover:bg-white/20 transition-all"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
+        <CalendarIcon className="w-4 h-4" />
         <span className="text-sm font-medium">
           {selectedCount === 0 ? 'Select Calendars' : `${selectedCount} calendar${selectedCount === 1 ? '' : 's'} selected`}
         </span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
+        <ChevronDownIcon className={cn("w-4 h-4 transition-transform opacity-50", isOpen && "rotate-180")} />
+      </Button>
 
-      <div className={`absolute top-full left-0 mt-2 w-64 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl p-2 shadow-xl z-50 flex flex-col gap-1 max-h-[300px] overflow-y-auto transition-all duration-200 ease-out origin-top-left ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
-          {calendars.map((calendar) => (
-            <button
-              key={calendar.id}
-              onClick={() => onToggle(calendar.id || '')}
-              className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${
-                selectedCalendars.includes(calendar.id || '')
-                  ? 'bg-white/20 text-white'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <div
-                className="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                style={{ backgroundColor: calendar.backgroundColor || '#ccc' }}
-              />
-              <span className="truncate flex-1 text-left">{calendar.summary}</span>
-              {selectedCalendars.includes(calendar.id || '') && (
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              )}
-            </button>
-          ))}
-          {calendars.length === 0 && (
-            <div className="px-3 py-2 text-sm text-gray-500 text-center">No calendars found</div>
-          )}
-      </div>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-64 bg-popover border border-border rounded-xl shadow-xl z-[100] p-1 animate-in fade-in zoom-in-95 duration-100 origin-top-left">
+          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+            Your Calendars
+          </div>
+          <div className="h-px bg-border my-1" />
+          <div className="max-h-[300px] overflow-y-auto">
+            {calendars.length === 0 ? (
+              <div className="px-2 py-4 text-sm text-muted-foreground text-center">No calendars found</div>
+            ) : (
+              calendars.map((calendar) => (
+                <button
+                  key={calendar.id}
+                  onClick={() => onToggle(calendar.id || '')}
+                  className={cn(
+                    "flex items-center gap-3 w-full px-2 py-1.5 rounded-md text-sm transition-colors text-left",
+                    selectedCalendars.includes(calendar.id || '')
+                      ? "bg-accent text-accent-foreground"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: calendar.backgroundColor || '#ccc' }}
+                  />
+                  <span className="truncate flex-1">{calendar.summary}</span>
+                  {selectedCalendars.includes(calendar.id || '') && (
+                      <CheckIcon className="w-4 h-4 ml-auto" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
